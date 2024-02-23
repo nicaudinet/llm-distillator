@@ -1,12 +1,45 @@
 import argparse
 from enum import Enum
+from pathlib import Path
 
+import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
 class RunMode(Enum):
     ALVIS = "alvis"
     OLLAMA = "ollama"
+
+
+class Sentiment(Enum):
+    POSITIVE = "pos"
+    NEGATIVE = "neg"
+
+
+class Topic(Enum):
+    MUSIC = "music"
+    BOOKS = "books"
+    DVD = "dvd"
+    CAMERA = "camera"
+    HEALTH = "health"
+    SOFTWARE = "software"
+
+
+def parse_amazon_reviews(filepath):
+    with open(filepath, "r") as f:
+        lines = f.readlines()
+    data = []
+    for line in lines:
+        split_line = line.split(" ")
+        data.append(
+            {
+                "topic": Topic(split_line[0]),
+                "sentiment": Sentiment(split_line[1]),
+                "review_id": int(split_line[2].split(".")[0]),
+                "review": " ".join(split_line[3:]),
+            }
+        )
+    return pd.DataFrame(data)
 
 
 def run_alvis():
@@ -30,8 +63,8 @@ def run_alvis():
     print(decoded[0])
 
 
-def run_ollama():
-    print("Running model using Ollama")
+def run_ollama(data):
+    print(data.head(10))
 
 
 if __name__ == "__main__":
@@ -41,9 +74,17 @@ if __name__ == "__main__":
         choices=[m.value for m in RunMode],
         help="How to run the model",
     )
+    parser.add_argument(
+        "-d",
+        "--datapath",
+        type=Path,
+        default=Path("data/dredze_amazon_reviews.txt"),
+        help="Path to the Amazon reviews corpus",
+    )
     args = parser.parse_args()
 
+    data = parse_amazon_reviews(args.datapath)
     if args.runmode == RunMode.ALVIS.value:
         run_alvis()
     else:
-        run_ollama()
+        run_ollama(data)
