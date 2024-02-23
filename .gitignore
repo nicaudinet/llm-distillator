@@ -1,3 +1,4 @@
 slurm*
 *.sif
 data
+.venv
