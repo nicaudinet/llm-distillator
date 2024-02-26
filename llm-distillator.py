@@ -2,6 +2,7 @@ import argparse
 from enum import Enum
 from pathlib import Path
 
+import ollama
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -63,8 +64,35 @@ def run_alvis():
     print(decoded[0])
 
 
+def make_prompt(sentiment, review):
+    return f"""
+        The sentiment of the following review is {sentiment.value}.
+
+        Rewrite the review such that the sentiment is completely neutral. It is
+        very important that one cannot tell whether the review is positive or
+        negative at all. Try and keep all other information in the review.
+        
+        Here's the review:
+
+        {review}
+        """
+
+
 def run_ollama(data):
-    print(data.head(10))
+    row = 0
+    sentiment = data["sentiment"][row]
+    review = data["review"][row]
+    print("Original review:")
+    print(review)
+    print("Distilled review:")
+    message = make_prompt(sentiment, review)
+    stream = ollama.chat(
+        model="mistral",
+        messages=[{"role": "user", "content": message}],
+        stream=True,
+    )
+    for chunk in stream:
+        print(chunk["message"]["content"], end="", flush=True)
 
 
 if __name__ == "__main__":
