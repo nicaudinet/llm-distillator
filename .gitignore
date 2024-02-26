@@ -2,3 +2,4 @@ slurm*
 *.sif
 data
 .venv
+__pycache__
