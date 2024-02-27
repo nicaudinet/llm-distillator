@@ -8,12 +8,12 @@ class Distillator(LLMRunner):
     def _make_prompt(self, text: str) -> str:
         assert False, "not implemented"
 
-    def distill(self, text: str | list[str]) -> tuple[str, str]:
+    def distill(self, text: str | list[str]) -> list[tuple[str, str]]:
         if isinstance(text, str):
             text = [text]
         prompts = [self._make_prompt(t) for t in text]
-        response = self.run(prompts)
-        return prompt, response
+        responses = self.run(prompts)
+        return list(zip(prompts, responses))
 
 
 class AmazonReviewDistillator(Distillator):

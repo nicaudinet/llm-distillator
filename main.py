@@ -53,7 +53,9 @@ if __name__ == "__main__":
     texts = data["text"][:10]
     assert type(texts) == list[str]
     start = time.time()
-    prompt, response = distillator.distill(texts)
-    print(f"Time taken: {time.time() - start}")
-    with open("distilled/response.txt", "w") as f:
-        f.write(response)
+    responses = distillator.distill(texts)
+    print(f"T, ime taken: {time.time() - start}")
+    prompts, contents = zip(*responses)
+    for i, content in enumerate(contents):
+        with open(f"distilled/{str(i).zfill(3)}.txt", "w") as f:
+            f.write(content)
