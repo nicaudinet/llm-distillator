@@ -17,16 +17,17 @@ class LLMRunner:
     def __init__(self, runmode: RunMode):
         self.runmode = runmode
 
-    def run(self, prompt):
+    def run(self, prompt: str) -> str:
         """
         Run Mistral 7B with a prompt
         """
+        print(".")
         if self.runmode == RunMode.ALVIS:
             return self._run_alvis(prompt)
         else:
             return self._run_ollama(prompt)
 
-    def _run_alvis(self, prompt):
+    def _run_alvis(self, prompt: str) -> str:
         """
         Run Mistral 7B on my Alvis project with a prompt
         """
@@ -44,7 +45,7 @@ class LLMRunner:
         decoded = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
         return decoded[0]
 
-    def _run_ollama(self, prompt):
+    def _run_ollama(self, prompt: str) -> str:
         """
         Run Mistral 7B locally using Ollama with a prompt
         """
