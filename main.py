@@ -1,4 +1,5 @@
 import argparse
+import time
 from enum import Enum
 from pathlib import Path
 
@@ -51,8 +52,8 @@ if __name__ == "__main__":
     data = parser.parse(datapath)
     text = data["text"][0]
     assert type(text) == str
+    start = time.time()
     prompt, response = distillator.distill(text)
-
-    print(f"Original text:\n{text}")
-    print(f"\n\nPrompt:\n{prompt}")
-    print(f"\n\nDistilled text:\n{response}")
+    print(f"Time taken: {time.time() - start}")
+    with open("distilled/response.txt", "w") as f:
+        f.write(response)
