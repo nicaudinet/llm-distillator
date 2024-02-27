@@ -50,10 +50,10 @@ if __name__ == "__main__":
         assert False, "Invalid input"
 
     data = parser.parse(datapath)
-    text = data["text"][0]
-    assert type(text) == str
+    texts = data["text"][:10]
+    assert type(texts) == list[str]
     start = time.time()
-    prompt, response = distillator.distill(text)
+    prompt, response = distillator.distill(texts)
     print(f"Time taken: {time.time() - start}")
     with open("distilled/response.txt", "w") as f:
         f.write(response)
