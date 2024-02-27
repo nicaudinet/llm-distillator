@@ -4,4 +4,4 @@
 #SBATCH -N 1 --gpus-per-node=A40:1  # We're launching 1 node with 1 Nvidia T4 GPUs each
 #SBATCH -t 0-00:10:00
 
-apptainer exec container.sif python llm-distillator.py
+apptainer exec container.sif python main.py alvis

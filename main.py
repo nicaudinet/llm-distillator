@@ -25,13 +25,6 @@ if __name__ == "__main__":
         help="How to run the model",
     )
     parser.add_argument(
-        "-d",
-        "--datapath",
-        type=Path,
-        default=Path("data/dredze_amazon_reviews.txt"),
-        help="Path to the Amazon reviews corpus",
-    )
-    parser.add_argument(
         "-e",
         "--experiment",
         choices=[e.value for e in Experiment],
