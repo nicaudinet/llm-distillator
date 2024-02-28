@@ -52,6 +52,8 @@ class LLMRunner:
         tokenizer_path = in_dir / Path("tokenizers/Mistral-7B-Instruct-v0.2")
         model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto")
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
+        if tokenizer.pad_token_id is None:
+            tokenizer.pad_token = tokenizer.eos_token
         distillator = ConversationalPipeline(
             model=model,
             tokenizer=tokenizer,
