@@ -6,3 +6,4 @@ bitsandbytes
 ollama
 beautifulsoup4
 lxml
+datasets
