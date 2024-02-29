@@ -12,33 +12,28 @@ from transformers import (
 )
 
 
-class RunMode(Enum):
-    ALVIS = "alvis"
-    OLLAMA = "ollama"
-
-
 def parse_amazon_review(line: dict) -> dict:
     split_line = line["text"].split(" ")
     return {"text": " ".join(split_line[3:])}
 
 
 def make_amazon_prompt(text: str) -> str:
-    return f"""
-        Rewrite the review such that the sentiment is completely neutral. It is
-        very important that one cannot tell whether the review is positive or
-        negative at all. Try and keep all other information in the review.
-        
-        Here's the review:
+    prompt = f"""
+Rewrite the review such that the sentiment is completely neutral. It is
+very important that one cannot tell whether the review is positive or
+negative at all. Try and keep all other information in the review.
 
-        {text}
+Here's the review:
+
+{text}
         """
-
+    return {"text": prompt}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Distill text with an LLM")
     parser.add_argument(
         "runmode",
-        choices=[m.value for m in RunMode],
+        choices=["ollama", "alvis"],
         help="How to run the model",
     )
     parser.add_argument(
@@ -53,7 +48,7 @@ if __name__ == "__main__":
         "--out_dir",
         type=Path,
         default="results",
-        help="The directory to save responses to. If not provided, responses are printed on stdout instead",
+        help="Directory to save responses to (default: ./results)",
     )
     parser.add_argument(
         "-n",
@@ -71,15 +66,21 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    data = load_dataset("text", data_files=args.data_path)
-    data = data.map(parse_amazon_review)
+    # Load the data
+    data = load_dataset(
+            "text", # Type of data to load (text file)
+            data_files=str(args.data_path), # Filepath for the data
+            split="train" # Return a Dataset rather than a DatasetDict
+        )
 
+    # Preprocess
+    data = data.map(parse_amazon_review)
     if args.num_samples is not None:
         data = data.select(range(args.num_samples))
-
     prompts = data.map(make_amazon_prompt)
 
-    if args.runmode == RunMode.OLLAMA:
+    if args.runmode == "ollama":
+        print("Running with Ollama")
         responses = []
         for prompt in prompts:
             response = ollama.chat(
@@ -89,7 +90,8 @@ if __name__ == "__main__":
             print(f"Prompt:\n{prompt}")
             print(f"Response:\n{response['message']['content']}")
 
-    elif args.runmode == RunMode.ALVIS:
+    elif args.runmode == "alvis":
+        print("Running on Alvis")
         in_dir = Path("/mimer/NOBACKUP/groups/ci-nlp-alvis/")
         model_path = in_dir / Path("models/Mistral-7B-Instruct-v0.2")
         model = AutoModelForCausalLM.from_pretrained(model_path, device_map="auto")
@@ -101,9 +103,13 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             framework="pt",
         )
-        conversations = prompts.map(Conversation)
-        conversations = conversations.map(distillator)
-        conversations = conversations.map(lambda c: c.messages[-1]["content"])
-        for i, content in enumerate(conversations):
+
+        for i, prompt in enumerate(prompts):
+            conversation = Conversation(prompt["text"])
+            response = distillator(conversation)
+            answer = response.messages[-1]["content"]
             with open(args.out_dir / Path(f"{str(i).zfill(3)}.txt"), "w") as f:
-                f.write(content)
+                f.write(answer)
+
+    else:
+        raise ValueError(f"Invalid runmode argument {runmode}")

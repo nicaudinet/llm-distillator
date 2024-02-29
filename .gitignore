@@ -3,3 +3,4 @@ slurm*
 data
 .venv
 __pycache__
+results
