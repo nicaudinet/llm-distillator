@@ -59,10 +59,17 @@ def classify(embeddings, labels, test_size, B, CL):
     return (mean_s, lower_s, upper_s), (mean_t, lower_t, upper_t)
 
 
+##############
+# PARAMETERS #
+##############
+num_reviews = 4000  # Set to None to use all reviews
+
 # Load the distilled Amazon review data
 with open("data/amazon_reviews/distilled.txt", "r") as f:
     distilled_lines = f.readlines()
-num_reviews = len(distilled_lines)
+
+if num_reviews == None:
+    num_reviews = len(distilled_lines)
 
 # Load the original Amazon review data
 original = []
@@ -82,7 +89,7 @@ original = pd.DataFrame(original)
 
 # Make distilled dataframe
 distilled = original.copy()
-distilled["text"] = distilled_lines
+distilled["text"] = distilled_lines[:num_reviews]
 
 # Vectorize the texts
 max_vocab_size = 256
