@@ -19,15 +19,53 @@ def parse_amazon_review(line: dict) -> dict:
 
 def make_amazon_prompt(text: str) -> str:
     prompt = f"""
-Rewrite the review such that the sentiment is completely neutral. It is
-very important that one cannot tell whether the review is positive or
-negative at all. Try and keep all other information in the review.
+Rewrite the review such that the sentiment is completely neutral. It is very
+important that one cannot tell whether the review is positive or negative at
+all. Try and keep all other information in the review.
+
+Here are a few examples of how to do this.
+
+Example 1: if the original review was:
+
+i bought this album because i loved the title song . it 's such a great song , how bad can the rest of the album be , right ? well , the rest of the songs are just filler and are n't worth the money i paid for this . it 's either shameless bubblegum or oversentimentalized depressing tripe . kenny chesney is a popular artist and as a result he is in the cookie cutter category of the nashville music scene . he 's gotta pump out the albums so the record company can keep lining their pockets while the suckers out there keep buying this garbage to perpetuate more garbage coming out of that town . i 'll get down off my soapbox now . but country music really needs to get back to it 's roots and stop this pop nonsense . what country music really is and what it is considered to be by mainstream are two different things .
+
+then the neutral rewrite might be:
+
+I bought this album because of the title song. The rest of the album I didn't
+know as well. Kenny Chesney is a popular artist in the Nashville music scene. He
+makes many albums with his record company. Country music has been evolving from
+its roots to a more pop sound.
+
+Example 2: if the original review was:
+
+this is a very good shaver for the private area . however , the key to getting the best results is to trim the longer hairs with scissors or the largest guard first . this will keep the shaver from pulling on the longer hairs and will enable the foil part of the shaver to work . the foil will not be able to do its job if the hairs are too long . the only problem i had with the shaver was that it did not enable me to shave my back like it claimed . however , i use the ' mangroomer ' back shaver for this and it is perfect for you to shave off all your back hair easily with its elongated handle . it is a great product as well . therefore , i would have to say these two products coupled together seem to cover all the bases for men 's grooming on the body . i would highly recommend both of them for perfect manscaping results
+
+then the neutral rewrite might be:
+
+To use this shaver in the private area it is important to trim the longer hairs
+with scissors or the largest guard first. This will keep the shaver from pulling
+on the longer hairs and will enable the foil part of the shaver to work. The
+foil will not be able to do its job if the hairs are too long. The shaver might
+also not work well on the back. For this, there are other options such as the
+'Mangroomer' back shaver which has an elongated handle that makes it easy to
+shave back hair.
+
+Example 3: if the original review was:
+
+i bought bead fantasies and bead fantasies ii at the same time after reading the positive reviews ; i wish i had looked at these books before buying . there are pretty motifs that i will incorporate into my beading projects but i find the small typed directions overly simplistic and the diagrams are too small . i 'm glad this is n't my first beading book or i would feel totally discouraged from trying any of these projects . i wo n't be buying bead fantasies iii . the art and elegance of beadweaving and coraling technique remain my favorite beading books .
+
+then the neutral rewrite might be:
+
+I bought Bead Fantasies and Bead Fantasies II at the same time. I like some of
+the motifs but not others. This is not my first beading book. The art and
+elegance of beadweaving and coraling technique are great beading books. 
 
 Here's the review:
 
-{text}
-        """
+{text["text"]}
+"""
     return {"text": prompt}
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Distill text with an LLM")
@@ -40,7 +78,7 @@ if __name__ == "__main__":
         "-d",
         "--data_path",
         type=Path,
-        default="data/dredze_amazon_reviews.txt",
+        default="data/amazon_reviews/original.txt",
         help="Path to the Amazon review data file",
     )
     parser.add_argument(
@@ -68,10 +106,10 @@ if __name__ == "__main__":
 
     # Load the data
     data = load_dataset(
-            "text", # Type of data to load (text file)
-            data_files=str(args.data_path), # Filepath for the data
-            split="train" # Return a Dataset rather than a DatasetDict
-        )
+        "text",  # Type of data to load (text file)
+        data_files=str(args.data_path),  # Filepath for the data
+        split="train",  # Return a Dataset rather than a DatasetDict
+    )
 
     # Preprocess
     data = data.map(parse_amazon_review)
@@ -85,9 +123,9 @@ if __name__ == "__main__":
         for prompt in prompts:
             response = ollama.chat(
                 model="mistral",
-                messages=[{"role": "user", "content": prompt}],
+                messages=[{"role": "user", "content": prompt["text"]}],
             )
-            print(f"Prompt:\n{prompt}")
+            print(f"Prompt:\n{prompt["text"]}")
             print(f"Response:\n{response['message']['content']}")
 
     elif args.runmode == "alvis":
