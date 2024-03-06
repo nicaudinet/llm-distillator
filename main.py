@@ -125,7 +125,7 @@ if __name__ == "__main__":
                 model="mistral",
                 messages=[{"role": "user", "content": prompt["text"]}],
             )
-            print(f"Prompt:\n{prompt["text"]}")
+            print(f"Prompt:\n{prompt['text']}")
             print(f"Response:\n{response['message']['content']}")
 
     elif args.runmode == "alvis":
@@ -146,7 +146,7 @@ if __name__ == "__main__":
             conversation = Conversation(prompt["text"])
             response = distillator(conversation)
             answer = response.messages[-1]["content"]
-            with open(args.out_dir / Path(f"{str(i).zfill(3)}.txt"), "w") as f:
+            with open(args.out_dir / Path(f"{str(i).zfill(5)}.txt"), "w") as f:
                 f.write(answer)
 
     else:

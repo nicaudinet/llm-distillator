@@ -5,7 +5,7 @@
 #SBATCH -t 0-24:00:00
 
 time apptainer exec container.sif python main.py alvis \
-	--data_path "/cephyr/users/audinet/Alvis/llm-distillator/data/dredze_amazon_reviews.txt" \
-	--out_dir "/cephyr/users/audinet/Alvis/llm-distillator/results/" \
-	# --num_samples 20 \
+	--data_path "/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/original.txt" \
+	--out_dir "/cephyr/users/audinet/Alvis/llm-distillator/results/few-shot/" \
+	--num_samples 5000 \
 	--batch_size 4
