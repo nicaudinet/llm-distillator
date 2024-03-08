@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -23,7 +24,13 @@ topic_to_int = {
 }
 
 
-def embed(data: list[str], batch_size: int):
+def embed_tfidf(data: list[str], max_features: int) -> torch.Tensor:
+    vectorizer = TfidfVectorizer(max_features=max_features)
+    tfidf_matrix = vectorizer.fit_transform(data).toarray()
+    return torch.from_numpy(tfidf_matrix)
+
+
+def embed_bert(data: list[str], batch_size: int) -> torch.Tensor:
     tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
     model = DistilBertModel.from_pretrained("distilbert-base-uncased")
 
@@ -83,6 +90,11 @@ def classify(embeddings, labels, test_size, B, CL):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Distill text with an LLM")
     parser.add_argument(
+        "--embedding_method",
+        choices=["tfidf", "bert"],
+        help="Type of method to use for embedding the text",
+    )
+    parser.add_argument(
         "--original_reviews",
         type=Path,
         help="Path to the Amazon reviews BEFORE distillation",
@@ -103,11 +115,6 @@ if __name__ == "__main__":
         help="The number of reviews to use (default: all)",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        help="The batch size to use for the pipeline",
-    )
-    parser.add_argument(
         "--test_size",
         type=float,
         help="Fraction of samples in test set",
@@ -121,6 +128,16 @@ if __name__ == "__main__":
         "--confidence_level",
         type=float,
         help="Confidence level for the bootstrap interval",
+    )
+    parser.add_argument(
+        "--max_features",
+        type=int,
+        help="The maximum number of features to use for the Tfidf embedding",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        help="The batch size to use for the pipeline (bert)",
     )
     args = parser.parse_args()
 
@@ -149,8 +166,14 @@ if __name__ == "__main__":
     labels = pd.DataFrame(labels)
 
     # Vectorize the texts
-    embedding_orig = embed(original, args.batch_size)
-    embedding_dist = embed(distilled, args.batch_size)
+    if args.embedding_method == "tfidf":
+        embedding_orig = embed_tfidf(original, args.max_features)
+        embedding_dist = embed_tfidf(distilled, args.max_features)
+    elif args.embedding_method == "bert":
+        embedding_orig = embed_bert(original, args.batch_size)
+        embedding_dist = embed_bert(distilled, args.batch_size)
+    else:
+        raise ValueError("Invalid embedding method")
 
     # Classify before distillation
     acc_s, acc_t = classify(
