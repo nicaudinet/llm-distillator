@@ -1,3 +1,6 @@
+import argparse
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import torch
@@ -20,14 +23,13 @@ topic_to_int = {
 }
 
 
-def embed(data: list[str]):
+def embed(data: list[str], batch_size: int):
     tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
     model = DistilBertModel.from_pretrained("distilbert-base-uncased")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    batch_size = 8
     data_loader = DataLoader(data, batch_size=batch_size)
 
     embeddings = []
@@ -79,25 +81,63 @@ def classify(embeddings, labels, test_size, B, CL):
 
 
 if __name__ == "__main__":
-    num_reviews = 20  # Set to None to use all reviews
-    test_size = 0.2
-    num_bootstrap = 20
-    CL = 0.95
+    parser = argparse.ArgumentParser(description="Distill text with an LLM")
+    parser.add_argument(
+        "--original_reviews",
+        type=Path,
+        help="Path to the Amazon reviews BEFORE distillation",
+    )
+    parser.add_argument(
+        "--distilled_reviews",
+        type=Path,
+        help="Path to the Amazon reviews AFTER distillation",
+    )
+    parser.add_argument(
+        "--out_file",
+        type=Path,
+        help="Path to save classification output to",
+    )
+    parser.add_argument(
+        "--num_reviews",
+        type=int,
+        help="The number of reviews to use (default: all)",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        help="The batch size to use for the pipeline",
+    )
+    parser.add_argument(
+        "--test_size",
+        type=float,
+        help="Fraction of samples in test set",
+    )
+    parser.add_argument(
+        "--num_bootstrap",
+        type=int,
+        help="Number of bootstrap samples",
+    )
+    parser.add_argument(
+        "--confidence_level",
+        type=float,
+        help="Confidence level for the bootstrap interval",
+    )
+    args = parser.parse_args()
 
     # Load the distilled Amazon review data
-    with open("data/amazon_reviews/distilled/few-shot.txt", "r") as f:
+    with open(args.distilled_reviews, "r") as f:
         distilled = f.readlines()
 
-    if num_reviews == None:
+    if args.num_reviews:
         num_reviews = len(distilled)
-    distilled = distilled[:num_reviews]
+    distilled = distilled[: args.num_reviews]
 
     # Load the original Amazon review data
     labels = []
     original = []
-    with open("data/amazon_reviews/original.txt", "r") as f:
+    with open(args.original_reviews, "r") as f:
         lines = f.readlines()
-    for line in lines[:num_reviews]:
+    for line in lines[: args.num_reviews]:
         split_line = line.split(" ")
         labels.append(
             {
@@ -109,23 +149,45 @@ if __name__ == "__main__":
     labels = pd.DataFrame(labels)
 
     # Vectorize the texts
-    embedding_orig = embed(original)
-    embedding_dist = embed(distilled)
+    embedding_orig = embed(original, args.batch_size)
+    embedding_dist = embed(distilled, args.batch_size)
 
     # Classify before distillation
-    acc_s, acc_t = classify(embedding_orig, labels, test_size, num_bootstrap, CL)
-    with open("/cephyr/users/audinet/Alvis/llm-distillator/results/few-shot/classify_bert.txt", "w") as out:
-        out.writelines([
+    acc_s, acc_t = classify(
+        embedding_orig,
+        labels,
+        args.test_size,
+        args.num_bootstrap,
+        args.confidence_level,
+    )
+    results = "\n".join(
+        [
             "Before distillation:",
             f"\tSentiment Classifier Accuracy: {acc_s[0]:.3f} ({acc_s[1]:.3f}, {acc_s[2]:.3f})",
             f"\tTopic Classifier Accuracy: {acc_t[0]:.3f} ({acc_t[1]:.3f}, {acc_t[2]:.3f})",
-        ])
+        ]
+    )
+    if args.out_file:
+        with open(args.out_file, "w") as out:
+            out.write(results)
+    else:
+        print(results)
 
     # Classify after distillation
-    acc_s, acc_t = classify(embedding_dist, labels, test_size, num_bootstrap, CL)
-    with open("/cephyr/users/audinet/Alvis/llm-distillator/results/few-shot/classify_bert.txt", "w") as out:
-        out.writelines([
+    acc_s, acc_t = classify(
+        embedding_dist,
+        labels,
+        args.test_size,
+        args.num_bootstrap,
+        args.confidence_level,
+    )
+    results = "\n".join(
+        [
             "After distillation:",
             f"\tSentiment Classifier Accuracy: {acc_s[0]:.3f} ({acc_s[1]:.3f}, {acc_s[2]:.3f})",
             f"\tTopic Classifier Accuracy: {acc_t[0]:.3f} ({acc_t[1]:.3f}, {acc_t[2]:.3f})",
-            ])
+        ]
+    )
+    if args.out_file:
+        with open(args.out_file, "a") as out:
+            out.write(results)
