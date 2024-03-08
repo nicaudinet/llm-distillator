@@ -112,21 +112,20 @@ if __name__ == "__main__":
     embedding_orig = embed(original)
     embedding_dist = embed(distilled)
 
-    # Classify and compare
+    # Classify before distillation
     acc_s, acc_t = classify(embedding_orig, labels, test_size, num_bootstrap, CL)
-    print("Before distillation:")
-    print(
-        f"\tSentiment Classifier Accuracy: {acc_s[0]:.3f} ({acc_s[1]:.3f}, {acc_s[2]:.3f})"
-    )
-    print(
-        f"\tTopic Classifier Accuracy: {acc_t[0]:.3f} ({acc_t[1]:.3f}, {acc_t[2]:.3f})"
-    )
+    with open("/cephyr/users/audinet/Alvis/llm-distillator/results/few-shot/classify_bert.txt", "w") as out:
+        out.writelines([
+            "Before distillation:",
+            f"\tSentiment Classifier Accuracy: {acc_s[0]:.3f} ({acc_s[1]:.3f}, {acc_s[2]:.3f})",
+            f"\tTopic Classifier Accuracy: {acc_t[0]:.3f} ({acc_t[1]:.3f}, {acc_t[2]:.3f})",
+        ])
 
+    # Classify after distillation
     acc_s, acc_t = classify(embedding_dist, labels, test_size, num_bootstrap, CL)
-    print("After distillation:")
-    print(
-        f"\tSentiment Classifier Accuracy: {acc_s[0]:.3f} ({acc_s[1]:.3f}, {acc_s[2]:.3f})"
-    )
-    print(
-        f"\tTopic Classifier Accuracy: {acc_t[0]:.3f} ({acc_t[1]:.3f}, {acc_t[2]:.3f})"
-    )
+    with open("/cephyr/users/audinet/Alvis/llm-distillator/results/few-shot/classify_bert.txt", "w") as out:
+        out.writelines([
+            "After distillation:",
+            f"\tSentiment Classifier Accuracy: {acc_s[0]:.3f} ({acc_s[1]:.3f}, {acc_s[2]:.3f})",
+            f"\tTopic Classifier Accuracy: {acc_t[0]:.3f} ({acc_t[1]:.3f}, {acc_t[2]:.3f})",
+            ])
