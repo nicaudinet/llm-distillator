@@ -27,7 +27,17 @@ Here are a few examples of how to do this.
 
 Example 1: if the original review was:
 
-i bought this album because i loved the title song . it 's such a great song , how bad can the rest of the album be , right ? well , the rest of the songs are just filler and are n't worth the money i paid for this . it 's either shameless bubblegum or oversentimentalized depressing tripe . kenny chesney is a popular artist and as a result he is in the cookie cutter category of the nashville music scene . he 's gotta pump out the albums so the record company can keep lining their pockets while the suckers out there keep buying this garbage to perpetuate more garbage coming out of that town . i 'll get down off my soapbox now . but country music really needs to get back to it 's roots and stop this pop nonsense . what country music really is and what it is considered to be by mainstream are two different things .
+i bought this album because i loved the title song . it 's such a great song ,
+how bad can the rest of the album be , right ? well , the rest of the songs are
+just filler and are n't worth the money i paid for this . it 's either shameless
+bubblegum or oversentimentalized depressing tripe . kenny chesney is a popular
+artist and as a result he is in the cookie cutter category of the nashville
+music scene . he 's gotta pump out the albums so the record company can keep
+lining their pockets while the suckers out there keep buying this garbage to
+perpetuate more garbage coming out of that town . i 'll get down off my soapbox
+now . but country music really needs to get back to it 's roots and stop this
+pop nonsense . what country music really is and what it is considered to be by
+mainstream are two different things .
 
 then the neutral rewrite might be:
 
@@ -38,7 +48,17 @@ its roots to a more pop sound.
 
 Example 2: if the original review was:
 
-this is a very good shaver for the private area . however , the key to getting the best results is to trim the longer hairs with scissors or the largest guard first . this will keep the shaver from pulling on the longer hairs and will enable the foil part of the shaver to work . the foil will not be able to do its job if the hairs are too long . the only problem i had with the shaver was that it did not enable me to shave my back like it claimed . however , i use the ' mangroomer ' back shaver for this and it is perfect for you to shave off all your back hair easily with its elongated handle . it is a great product as well . therefore , i would have to say these two products coupled together seem to cover all the bases for men 's grooming on the body . i would highly recommend both of them for perfect manscaping results
+this is a very good shaver for the private area . however , the key to getting
+the best results is to trim the longer hairs with scissors or the largest guard
+first . this will keep the shaver from pulling on the longer hairs and will
+enable the foil part of the shaver to work . the foil will not be able to do its
+job if the hairs are too long . the only problem i had with the shaver was that
+it did not enable me to shave my back like it claimed . however , i use the '
+mangroomer ' back shaver for this and it is perfect for you to shave off all
+your back hair easily with its elongated handle . it is a great product as well
+. therefore , i would have to say these two products coupled together seem to
+cover all the bases for men 's grooming on the body . i would highly recommend
+both of them for perfect manscaping results
 
 then the neutral rewrite might be:
 
@@ -52,7 +72,14 @@ shave back hair.
 
 Example 3: if the original review was:
 
-i bought bead fantasies and bead fantasies ii at the same time after reading the positive reviews ; i wish i had looked at these books before buying . there are pretty motifs that i will incorporate into my beading projects but i find the small typed directions overly simplistic and the diagrams are too small . i 'm glad this is n't my first beading book or i would feel totally discouraged from trying any of these projects . i wo n't be buying bead fantasies iii . the art and elegance of beadweaving and coraling technique remain my favorite beading books .
+i bought bead fantasies and bead fantasies ii at the same time after reading the
+positive reviews ; i wish i had looked at these books before buying . there are
+pretty motifs that i will incorporate into my beading projects but i find the
+small typed directions overly simplistic and the diagrams are too small . i 'm
+glad this is n't my first beading book or i would feel totally discouraged from
+trying any of these projects . i wo n't be buying bead fantasies iii . the art
+and elegance of beadweaving and coraling technique remain my favorite beading
+books .
 
 then the neutral rewrite might be:
 
