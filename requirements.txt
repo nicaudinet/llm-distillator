@@ -7,3 +7,4 @@ ollama
 beautifulsoup4
 lxml
 datasets
+scikit-learn
