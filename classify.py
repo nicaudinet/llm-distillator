@@ -92,7 +92,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--embedding_method",
         choices=["tfidf", "bert"],
-        help="Type of method to use for embedding the text",
+        help="Type of method to use for embedding the text (ignored if embeddings are given)",
+    )
+    parser.add_argument(
+        "--embedding_path",
+        type=Path,
+        help="Path to folder with pre-trained embeddings",
     )
     parser.add_argument(
         "--original_reviews",
@@ -145,16 +150,19 @@ if __name__ == "__main__":
     with open(args.distilled_reviews, "r") as f:
         distilled = f.readlines()
 
+    # Choose number of reviews
     if args.num_reviews:
+        num_reviews = args.num_reviews
+    else:
         num_reviews = len(distilled)
-    distilled = distilled[: args.num_reviews]
+    distilled = distilled[:num_reviews]
 
     # Load the original Amazon review data
     labels = []
     original = []
     with open(args.original_reviews, "r") as f:
         lines = f.readlines()
-    for line in lines[: args.num_reviews]:
+    for line in lines[:num_reviews]:
         split_line = line.split(" ")
         labels.append(
             {
@@ -166,14 +174,20 @@ if __name__ == "__main__":
     labels = pd.DataFrame(labels)
 
     # Vectorize the texts
-    if args.embedding_method == "tfidf":
-        embedding_orig = embed_tfidf(original, args.max_features)
-        embedding_dist = embed_tfidf(distilled, args.max_features)
-    elif args.embedding_method == "bert":
-        embedding_orig = embed_bert(original, args.batch_size)
-        embedding_dist = embed_bert(distilled, args.batch_size)
+    if args.embedding_path:
+        embedding_orig = torch.load(args.embedding_path / "embedding_orig.pt")
+        embedding_dist = torch.load(args.embedding_path / "embedding_dist.pt")
+        embedding_orig = embedding_orig[:num_reviews]
+        embedding_dist = embedding_dist[:num_reviews]
     else:
-        raise ValueError("Invalid embedding method")
+        if args.embedding_method == "tfidf":
+            embedding_orig = embed_tfidf(original, args.max_features)
+            embedding_dist = embed_tfidf(distilled, args.max_features)
+        elif args.embedding_method == "bert":
+            embedding_orig = embed_bert(original, args.batch_size)
+            embedding_dist = embed_bert(distilled, args.batch_size)
+        else:
+            raise ValueError("Invalid embedding method")
 
     # Classify before distillation
     acc_s, acc_t = classify(

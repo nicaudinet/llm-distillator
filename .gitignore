@@ -5,4 +5,5 @@ data
 __pycache__
 results
 *.out
+embeddings
 .ipynb_checkpoints
