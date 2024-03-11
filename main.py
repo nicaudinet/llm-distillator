@@ -4,12 +4,10 @@ from pathlib import Path
 
 import ollama
 from datasets import load_dataset
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    Conversation,
-    ConversationalPipeline,
-)
+from dotenv import dotenv_values
+from openai import OpenAI
+from transformers import (AutoModelForCausalLM, AutoTokenizer, Conversation,
+                          ConversationalPipeline)
 
 
 def parse_amazon_review(line: dict) -> dict:
@@ -98,35 +96,31 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Distill text with an LLM")
     parser.add_argument(
         "runmode",
-        choices=["ollama", "alvis"],
+        choices=["ollama", "alvis", "gpt4"],
         help="How to run the model",
     )
     parser.add_argument(
         "-d",
         "--data_path",
         type=Path,
-        default="data/amazon_reviews/original.txt",
         help="Path to the Amazon review data file",
     )
     parser.add_argument(
         "-o",
         "--out_dir",
         type=Path,
-        default="results",
         help="Directory to save responses to (default: ./results)",
     )
     parser.add_argument(
         "-n",
         "--num_samples",
         type=int,
-        default=None,
         help="The number of samples to use (default: all)",
     )
     parser.add_argument(
         "-b",
         "--batch_size",
         type=int,
-        default=1,
         help="The batch size to use for the pipeline",
     )
     args = parser.parse_args()
@@ -154,6 +148,19 @@ if __name__ == "__main__":
             )
             print(f"Prompt:\n{prompt['text']}")
             print(f"Response:\n{response['message']['content']}")
+
+    elif args.runmode == "gpt4":
+        print("Running with GPT-4")
+        env = dotenv_values(".env")
+        client = OpenAI(api_key=env["OPENAI_API_KEY"])
+        completion = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a librarian"},
+                {"role": "user", "content": "What is your favorite book?"},
+            ],
+        )
+        print(completion.choices[0].message)
 
     elif args.runmode == "alvis":
         print("Running on Alvis")
