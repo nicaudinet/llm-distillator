@@ -63,14 +63,14 @@ def classify(embeddings, labels, test_size, B, CL):
         # Sentiment classifier
         Xb, Yb = resample(embeddings, Ys, n_samples=n_samples)
         Xb_tr, Xb_te, Yb_tr, Yb_te = train_test_split(Xb, Yb, test_size=test_size)
-        logreg = LogisticRegression()
+        logreg = LogisticRegression(max_iter=1000)
         logreg.fit(Xb_tr, Yb_tr)
         preds = logreg.predict(Xb_te)
         acc_s[b] = accuracy_score(Yb_te, preds)
         # Topic classifier
         Xb, Yb = resample(embeddings, Yt, n_samples=n_samples)
         Xb_tr, Xb_te, Yb_tr, Yb_te = train_test_split(Xb, Yb, test_size=test_size)
-        logreg = LogisticRegression()
+        logreg = LogisticRegression(max_iter=1000)
         logreg.fit(Xb_tr, Yb_tr)
         preds = logreg.predict(Xb_te)
         acc_t[b] = accuracy_score(Yb_te, preds)
