@@ -1,13 +1,20 @@
 import argparse
+import asyncio
+import ssl
 from enum import Enum
 from pathlib import Path
 
+import aiohttp
+import certifi
 import ollama
 from datasets import load_dataset
 from dotenv import dotenv_values
-from openai import OpenAI
-from transformers import (AutoModelForCausalLM, AutoTokenizer, Conversation,
-                          ConversationalPipeline)
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    Conversation,
+    ConversationalPipeline,
+)
 
 
 def parse_amazon_review(line: dict) -> dict:
@@ -92,6 +99,36 @@ Here's the review:
     return {"text": prompt}
 
 
+async def call_openai(session, prompt, model, openai_api_key):
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 500,
+        "n": 1,
+    }
+    async with session.post(
+        url="https://api.openai.com/v1/chat/completions",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_api_key}",
+        },
+        json=payload,
+        ssl=ssl.create_default_context(cafile=certifi.where()),
+    ) as response:
+        response = await response.json()
+    return response["choices"][0]["message"]["content"]
+
+
+async def call_openai_bulk(prompts, model, openai_api_key):
+    async with aiohttp.ClientSession() as session, asyncio.TaskGroup() as tg:
+        responses = []
+        for prompt in prompts:
+            responses.append(
+                tg.create_task(call_openai(session, prompt, model, openai_api_key))
+            )
+    return [response.result() for response in responses]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Distill text with an LLM")
     parser.add_argument(
@@ -136,6 +173,8 @@ if __name__ == "__main__":
     data = data.map(parse_amazon_review)
     if args.num_samples is not None:
         data = data.select(range(args.num_samples))
+
+    # Make the prompts
     prompts = data.map(make_amazon_prompt)
 
     if args.runmode == "ollama":
@@ -151,16 +190,19 @@ if __name__ == "__main__":
 
     elif args.runmode == "gpt4":
         print("Running with GPT-4")
+        # From https://medium.com/@nitin_l/parallel-chatgpt-requests-from-python-6ab48cc2a610
         env = dotenv_values(".env")
-        client = OpenAI(api_key=env["OPENAI_API_KEY"])
-        completion = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a librarian"},
-                {"role": "user", "content": "What is your favorite book?"},
-            ],
+        prompts = [
+            "What is your favorite book?",
+            "What is your favorite movie?",
+            "What is your favorite song?",
+        ]
+        responses = asyncio.run(
+            call_openai_bulk(
+                prompts, model="gpt-3.5-turbo", openai_api_key=env["OPENAI_API_KEY"]
+            )
         )
-        print(completion.choices[0].message)
+        print(responses)
 
     elif args.runmode == "alvis":
         print("Running on Alvis")
