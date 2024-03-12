@@ -99,7 +99,7 @@ Here's the review:
     return {"text": prompt}
 
 
-async def call_openai(session, prompt, model, openai_api_key):
+async def call_openai(session, prompt, model, openai_api_key, review_id, out_dir):
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -116,15 +116,20 @@ async def call_openai(session, prompt, model, openai_api_key):
         ssl=ssl.create_default_context(cafile=certifi.where()),
     ) as response:
         response = await response.json()
-    return response["choices"][0]["message"]["content"]
+    with open(out_dir / Path(f"{str(review_id).zfill(5)}.txt"), "w") as f:
+        f.write(response["choices"][0]["message"]["content"])
 
 
-async def call_openai_bulk(prompts, model, openai_api_key):
+async def call_openai_bulk(prompts, model, openai_api_key, out_dir):
     async with aiohttp.ClientSession() as session, asyncio.TaskGroup() as tg:
         responses = []
-        for prompt in prompts:
+        for review_id, prompt in prompts:
             responses.append(
-                tg.create_task(call_openai(session, prompt, model, openai_api_key))
+                tg.create_task(
+                    call_openai(
+                        session, prompt, model, openai_api_key, review_id, out_dir
+                    )
+                )
             )
     return [response.result() for response in responses]
 
@@ -199,7 +204,10 @@ if __name__ == "__main__":
         ]
         responses = asyncio.run(
             call_openai_bulk(
-                prompts, model="gpt-3.5-turbo", openai_api_key=env["OPENAI_API_KEY"]
+                prompts=enumerate(prompts),
+                model="gpt-3.5-turbo",
+                openai_api_key=env["OPENAI_API_KEY"],
+                out_dir=args.out_dir,
             )
         )
         print(responses)
