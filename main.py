@@ -1,7 +1,9 @@
 import argparse
 import asyncio
 import ssl
+import time
 from enum import Enum
+from itertools import batched
 from pathlib import Path
 
 import aiohttp
@@ -99,11 +101,11 @@ Here's the review:
     return {"text": prompt}
 
 
-async def call_openai(session, prompt, model, openai_api_key, review_id, out_dir):
+async def call_openai(session, prompt, model, openai_api_key):
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 500,
+        "messages": [{"role": "user", "content": prompt["text"]}],
+        "max_tokens": 300,
         "n": 1,
     }
     async with session.post(
@@ -116,20 +118,15 @@ async def call_openai(session, prompt, model, openai_api_key, review_id, out_dir
         ssl=ssl.create_default_context(cafile=certifi.where()),
     ) as response:
         response = await response.json()
-    with open(out_dir / Path(f"{str(review_id).zfill(5)}.txt"), "w") as f:
-        f.write(response["choices"][0]["message"]["content"])
+    return response
 
 
-async def call_openai_bulk(prompts, model, openai_api_key, out_dir):
+async def call_openai_bulk(prompts, model, openai_api_key):
     async with aiohttp.ClientSession() as session, asyncio.TaskGroup() as tg:
         responses = []
-        for review_id, prompt in prompts:
+        for prompt in prompts:
             responses.append(
-                tg.create_task(
-                    call_openai(
-                        session, prompt, model, openai_api_key, review_id, out_dir
-                    )
-                )
+                tg.create_task(call_openai(session, prompt, model, openai_api_key))
             )
     return [response.result() for response in responses]
 
@@ -174,10 +171,12 @@ if __name__ == "__main__":
         split="train",  # Return a Dataset rather than a DatasetDict
     )
 
+    review_start = 800
+
     # Preprocess
     data = data.map(parse_amazon_review)
     if args.num_samples is not None:
-        data = data.select(range(args.num_samples))
+        data = data.select(range(review_start, review_start + args.num_samples))
 
     # Make the prompts
     prompts = data.map(make_amazon_prompt)
@@ -194,23 +193,31 @@ if __name__ == "__main__":
             print(f"Response:\n{response['message']['content']}")
 
     elif args.runmode == "gpt4":
-        print("Running with GPT-4")
+        model = "gpt-4-0125-preview"
+        print(f"Running with {model}")
         # From https://medium.com/@nitin_l/parallel-chatgpt-requests-from-python-6ab48cc2a610
         env = dotenv_values(".env")
-        prompts = [
-            "What is your favorite book?",
-            "What is your favorite movie?",
-            "What is your favorite song?",
-        ]
-        responses = asyncio.run(
-            call_openai_bulk(
-                prompts=enumerate(prompts),
-                model="gpt-3.5-turbo",
-                openai_api_key=env["OPENAI_API_KEY"],
-                out_dir=args.out_dir,
+        batch_size = 100  # There's a 500 RPM limit
+        for i, prompts_batch in enumerate(batched(prompts, batch_size)):
+            print(f"Batch {i}")
+            start = time.time()
+            responses = asyncio.run(
+                call_openai_bulk(
+                    prompts=prompts_batch,
+                    model=model,
+                    openai_api_key=env["OPENAI_API_KEY"],
+                )
             )
-        )
-        print(responses)
+            for j, response in enumerate(responses):
+                review_id = review_start + i * batch_size + j
+                with open(
+                    args.out_dir / Path(f"{str(review_id).zfill(5)}.txt"), "w"
+                ) as f:
+                    f.write(response["choices"][0]["message"]["content"])
+            time_to_next_batch = max(0, 20 - (time.time() - start))
+            print(f"\twaiting {time_to_next_batch:02f}s for next batch...")
+            time.sleep(time_to_next_batch)
+        print("Done")
 
     elif args.runmode == "alvis":
         print("Running on Alvis")
