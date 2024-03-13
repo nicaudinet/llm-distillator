@@ -266,6 +266,11 @@ if __name__ == "__main__":
         help="The number of samples to use (default: all)",
     )
     parser.add_argument(
+        "--start_sample",
+        type=int,
+        help="The sample to start from",
+    )
+    parser.add_argument(
         "-b",
         "--batch_size",
         type=int,
@@ -280,12 +285,25 @@ if __name__ == "__main__":
         split="train",  # Return a Dataset rather than a DatasetDict
     )
 
-    review_start = 600
+    N = len(data)
+    # Set start sample
+    if args.start_sample and 0 < args.start_sample < N:
+        start_sample = args.start_sample
+    else:
+        print(f"Start sample not specified or invalid, starting from 0")
+        start_sample = 0
+    # Set number of samples
+    if args.num_samples and 0 < args.num_samples < N - start_sample:
+        num_samples = args.num_samples
+    else:
+        print(f"Number of samples not specified or invalid")
+        num_samples = N - start_sample
+    print(f"Using samples {start_sample} to {start_sample + num_samples}")
 
     # Preprocess
     data = data.map(parse_amazon_review)
     if args.num_samples is not None:
-        data = data.select(range(review_start, review_start + args.num_samples))
+        data = data.select(range(start_sample, start_sample + num_samples))
 
     # Make the prompts
     if args.prompt_mode == "simple":
