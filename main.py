@@ -390,12 +390,22 @@ if __name__ == "__main__":
             framework="pt",
         )
 
-        for i, prompt in enumerate(prompts):
-            conversation = Conversation(prompt["text"])
-            response = distillator(conversation)
-            answer = response.messages[-1]["content"]
-            with open(args.out_dir / Path(f"{str(i).zfill(5)}.txt"), "w") as f:
-                f.write(answer)
+        if args.prompt_mode == "cot":
+            for prompt in prompts:
+                conversation = Conversation(prompt["stage1"])
+                conversation = distillator(conversation)
+                conversation.add_message({"role": "user", "content": prompt["stage2"]})
+                conversation = distillator(conversation)
+                answer = conversation.messages[-1]["content"]
+                with open(args.out_dir / Path(f"{str(i).zfill(5)}.txt"), "w") as f:
+                    f.write(answer)
+        else:
+            for i, prompt in enumerate(prompts):
+                conversation = Conversation(prompt["text"])
+                response = distillator(conversation)
+                answer = response.messages[-1]["content"]
+                with open(args.out_dir / Path(f"{str(i).zfill(5)}.txt"), "w") as f:
+                    f.write(answer)
 
     else:
         raise ValueError(f"Invalid runmode argument {runmode}")
