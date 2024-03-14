@@ -95,9 +95,14 @@ if __name__ == "__main__":
         help="Type of method to use for embedding the text (ignored if embeddings are given)",
     )
     parser.add_argument(
-        "--embedding_path",
+        "--embedding_in",
         type=Path,
         help="Path to folder with pre-trained embeddings",
+    )
+    parser.add_argument(
+        "--embedding_out",
+        type=Path,
+        help="Path to folder to which to save generated embeddings",
     )
     parser.add_argument(
         "--original_reviews",
@@ -174,9 +179,9 @@ if __name__ == "__main__":
     labels = pd.DataFrame(labels)
 
     # Vectorize the texts
-    if args.embedding_path:
-        embedding_orig = torch.load(args.embedding_path / "embedding_orig.pt")
-        embedding_dist = torch.load(args.embedding_path / "embedding_dist.pt")
+    if args.embedding_in:
+        embedding_orig = torch.load(args.embedding_in / "embedding_orig.pt")
+        embedding_dist = torch.load(args.embedding_in / "embedding_dist.pt")
         embedding_orig = embedding_orig[:num_reviews]
         embedding_dist = embedding_dist[:num_reviews]
     else:
@@ -188,6 +193,10 @@ if __name__ == "__main__":
             embedding_dist = embed_bert(distilled, args.batch_size)
         else:
             raise ValueError("Invalid embedding method")
+
+    if args.embedding_out:
+        torch.save(embedding_orig, args.embedding_out / "embedding_orig.pt")
+        torch.save(embedding_dist, args.embedding_out / "embedding_dist.pt")
 
     # Classify before distillation
     acc_s, acc_t = classify(
