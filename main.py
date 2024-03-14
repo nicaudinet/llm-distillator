@@ -3,7 +3,6 @@ import asyncio
 import ssl
 import time
 from enum import Enum
-from itertools import batched
 from pathlib import Path
 
 import aiohttp
@@ -233,6 +232,12 @@ async def call_openai_bulk(prompts, model, openai_api_key):
             )
     return [response.result() for response in responses]
 
+def batched(data, batch_size):
+    N = len(data)
+    for start in range(0, N, batch_size):
+        end = min(N, start + batch_size)
+        yield data[start:end]
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Distill text with an LLM")
@@ -391,7 +396,7 @@ if __name__ == "__main__":
         )
 
         if args.prompt_mode == "cot":
-            for prompt in prompts:
+            for i, prompt in enumerate(prompts):
                 conversation = Conversation(prompt["stage1"])
                 conversation = distillator(conversation)
                 conversation.add_message({"role": "user", "content": prompt["stage2"]})

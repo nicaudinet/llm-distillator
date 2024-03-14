@@ -5,9 +5,9 @@
 #SBATCH -t 0-24:00:00
 
 time apptainer exec container.sif python main.py alvis \
-    --prompt_mode "cot" \
-	--data_path "/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/original.txt" \
+	--prompt_mode "cot" \
+	--data_path "/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/original_reviews.txt" \
 	--out_dir "/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/cot" \
-	--num_samples 10 \
-    --start_sample 0
-	--batch_size 4
+	--num_samples 2000 \
+	--start_sample 0 \
+	--batch_size 4 \
