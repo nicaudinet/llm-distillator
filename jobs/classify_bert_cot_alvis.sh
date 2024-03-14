@@ -6,10 +6,12 @@
 
 time apptainer exec container.sif python classify.py \
     --original_reviews="/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/original_reviews.txt" \
-    --distilled_reviews="/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/few-shot/distilled_reviews.txt" \
-    --out_file="/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/few-shot/results_alvis.txt" \
-    --num_reviews=20 \
+    --distilled_reviews="/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/cot_reviews.txt" \
+    --embedding_method="bert" \
+    --embedding_out="/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/cot/" \
+    --out_file="/cephyr/users/audinet/Alvis/llm-distillator/data/amazon_reviews/cot/results.txt" \
+    --num_reviews=2000 \
     --batch_size=4 \
     --test_size=0.2 \
-    --num_bootstrap=20 \
+    --num_bootstrap=500 \
     --confidence_level=0.95 \

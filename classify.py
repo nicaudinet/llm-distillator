@@ -194,6 +194,9 @@ if __name__ == "__main__":
         else:
             raise ValueError("Invalid embedding method")
 
+    embedding_orig = embedding_orig.detach().cpu()
+    embedding_dist = embedding_dist.detach().cpu()
+
     if args.embedding_out:
         torch.save(embedding_orig, args.embedding_out / "embedding_orig.pt")
         torch.save(embedding_dist, args.embedding_out / "embedding_dist.pt")
