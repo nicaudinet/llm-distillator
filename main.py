@@ -23,8 +23,17 @@ def parse_amazon_review(line: dict) -> dict:
     return {"text": " ".join(split_line[3:])}
 
 
-def make_simple_prompt(text: str) -> str:
-    return f"""
+def make_identity_prompt(text):
+    prompt = f"""
+Paraphrase the following text without changing the meaning:
+
+{text["text"]}
+"""
+    return {"text": prompt}
+
+
+def make_simple_prompt(text):
+    prompt = f"""
 Rewrite the review such that the sentiment is completely neutral. It is
 very important that one cannot tell whether the review is positive or
 negative at all. Try and keep all other information in the review.
@@ -33,9 +42,10 @@ Here's the review:
 
 {text["text"]}
 """
+    return {"text": prompt}
 
 
-def make_fewshot_prompt(text: str) -> str:
+def make_fewshot_prompt(text):
     prompt = f"""
 Rewrite the review such that the sentiment is completely neutral. It is very
 important that one cannot tell whether the review is positive or negative at
@@ -232,6 +242,7 @@ async def call_openai_bulk(prompts, model, openai_api_key):
             )
     return [response.result() for response in responses]
 
+
 def batched(data, batch_size):
     N = len(data)
     for start in range(0, N, batch_size):
@@ -248,7 +259,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--prompt_mode",
-        choices=["simple", "fewshot", "cot"],
+        choices=["simple", "fewshot", "cot", "identity"],
         default="fewshot",
         help="Which prompt mode to use",
     )
@@ -317,8 +328,10 @@ if __name__ == "__main__":
         prompts = data.map(make_fewshot_prompt)
     elif args.prompt_mode == "cot":
         prompts = data.map(make_cot_prompts)
+    elif args.prompt_mode == "identity":
+        prompts = data.map(make_identity_prompt)
     else:
-        raise ValueError(f"Invalid prompt_mode argument {prompt_mode}")
+        raise ValueError(f"Invalid prompt_mode argument {args.prompt_mode}")
 
     if args.runmode == "ollama":
         print("Running with Ollama")
