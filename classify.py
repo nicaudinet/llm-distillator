@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+import wandb
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
@@ -23,14 +24,64 @@ topic_to_int = {
     "camera": 5,
 }
 
+WANDB_PROJECT = "llm-distillation"
 
-def embed_tfidf(data: list[str], max_features: int) -> torch.Tensor:
+
+def load_reviews(original_path, distilled_path):
+    """
+    Load the original reviews, distilled reviews and the labels and return them
+    as a dataframe
+    """
+    # Load the original Amazon reviews and their labels
+    data = []
+    with open(original_path, "r") as file:
+        for line in file.readlines():
+            words = line.split(" ")
+            data.append(
+                {
+                    "topic": words[0],
+                    "sentiment": words[1],
+                    "review_id": words[2],
+                    "original": " ".join(words[3:]),
+                }
+            )
+    data = pd.DataFrame(data)
+    # Load the distilled Amazon reviews
+    with open(distilled_path, "r") as file:
+        distilled = file.readlines()
+    # Keep the same number of reviews
+    num_reviews = min(len(data), len(distilled))
+    data = data[:num_reviews]
+    distilled = distilled[:num_reviews]
+    # Add distilled reviews to the dataframe
+    data["distilled"] = distilled
+    return data
+
+
+def load_reviews_and_log(original_path, distilled_path):
+    with wandb.init(project=WANDB_PROJECT, job_type="load-reviews") as run:
+        reviews = load_reviews(original_path, distilled_path)
+        table = wandb.Table(dataframe=reviews)
+        artifact = wandb.Artifact(
+            "raw-reviews",
+            type="dataset",
+            description="The original and distilled Amazon reviews with labels",
+            metadata={
+                "num_reviews": len(reviews),
+            },
+        )
+        artifact.add(table, "reviews-table")
+        run.log_artifact(artifact)
+    return reviews
+
+
+def embed_tfidf(data, max_features: int) -> torch.Tensor:
     vectorizer = TfidfVectorizer(max_features=max_features)
-    tfidf_matrix = vectorizer.fit_transform(data).toarray()
+    tfidf_matrix = vectorizer.fit_transform(list(data)).toarray()
     return torch.from_numpy(tfidf_matrix)
 
 
-def embed_bert(data: list[str], batch_size: int) -> torch.Tensor:
+def embed_bert(data, batch_size: int) -> torch.Tensor:
     tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
     model = DistilBertModel.from_pretrained("distilbert-base-uncased")
 
@@ -151,46 +202,22 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # Load the distilled Amazon review data
-    with open(args.distilled_reviews, "r") as f:
-        distilled = f.readlines()
-
-    # Choose number of reviews
-    if args.num_reviews:
-        num_reviews = args.num_reviews
-    else:
-        num_reviews = len(distilled)
-    distilled = distilled[:num_reviews]
-
-    # Load the original Amazon review data
-    labels = []
-    original = []
-    with open(args.original_reviews, "r") as f:
-        lines = f.readlines()
-    for line in lines[:num_reviews]:
-        split_line = line.split(" ")
-        labels.append(
-            {
-                "topic": split_line[0],
-                "sentiment": split_line[1],
-            }
-        )
-        original.append(" ".join(split_line[3:]))
-    labels = pd.DataFrame(labels)
+    reviews = load_reviews_and_log(args.original_reviews, args.distilled_reviews)
 
     # Vectorize the texts
     if args.embedding_in:
         embedding_orig = torch.load(args.embedding_in / "embedding_orig.pt")
         embedding_dist = torch.load(args.embedding_in / "embedding_dist.pt")
+        num_reviews = min(len(embedding_orig), len(embedding_dist), args.num_reviews)
         embedding_orig = embedding_orig[:num_reviews]
         embedding_dist = embedding_dist[:num_reviews]
     else:
         if args.embedding_method == "tfidf":
-            embedding_orig = embed_tfidf(original, args.max_features)
-            embedding_dist = embed_tfidf(distilled, args.max_features)
+            embedding_orig = embed_tfidf(reviews["original"], args.max_features)
+            embedding_dist = embed_tfidf(reviews["distilled"], args.max_features)
         elif args.embedding_method == "bert":
-            embedding_orig = embed_bert(original, args.batch_size)
-            embedding_dist = embed_bert(distilled, args.batch_size)
+            embedding_orig = embed_bert(reviews["original"], args.batch_size)
+            embedding_dist = embed_bert(reviews["distilled"], args.batch_size)
         else:
             raise ValueError("Invalid embedding method")
 

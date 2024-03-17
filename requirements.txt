@@ -13,3 +13,4 @@ scikit-learn
 python-dotenv
 aiohttp
 certifi
+wandb

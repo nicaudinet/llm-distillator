@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
 
-result_dir = Path("data/amazon_reviews/cot/")
-output_path = Path("data/amazon_reviews/cot_reviews.txt")
+result_dir = Path("data/amazon_reviews/identity/")
+output_path = Path("data/amazon_reviews/identity.txt")
 
 # files = os.listdir(result_dir)
 # files = [int(file.split(".")[0]) for file in files]
