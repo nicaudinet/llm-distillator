@@ -216,7 +216,7 @@ at all. Keep all other information in the review.
 async def call_openai(session, prompt, model, openai_api_key):
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt["text"]}],
+        "messages": [{"role": "user", "content": prompt}],
         "max_tokens": 300,
         "n": 1,
     }
@@ -373,25 +373,31 @@ if __name__ == "__main__":
         # From https://medium.com/@nitin_l/parallel-chatgpt-requests-from-python-6ab48cc2a610
         env = dotenv_values(".env")
         batch_size = 100  # There's a 500 RPM limit
-        for i, prompts_batch in enumerate(batched(prompts, batch_size)):
-            print(f"Batch {i}")
-            start = time.time()
-            responses = asyncio.run(
-                call_openai_bulk(
-                    prompts=prompts_batch,
-                    model=model,
-                    openai_api_key=env["OPENAI_API_KEY"],
+        try:
+            for i, prompts_batch in enumerate(batched(prompts, batch_size)):
+                print(f"Batch {i}")
+                start = time.time()
+                responses = asyncio.run(
+                    call_openai_bulk(
+                        prompts=prompts_batch["text"],
+                        model=model,
+                        openai_api_key=env["OPENAI_API_KEY"],
+                    )
                 )
-            )
-            for j, response in enumerate(responses):
-                review_id = review_start + i * batch_size + j
-                with open(
-                    args.out_dir / Path(f"{str(review_id).zfill(5)}.txt"), "w"
-                ) as f:
-                    f.write(response["choices"][0]["message"]["content"])
-            time_to_next_batch = max(0, 20 - (time.time() - start))
-            print(f"\twaiting {time_to_next_batch:02f}s for next batch...")
-            time.sleep(time_to_next_batch)
+                for j, response in enumerate(responses):
+                    review_id = args.start_sample + i * batch_size + j
+                    with open(
+                        args.out_dir / Path(f"{str(review_id).zfill(5)}.txt"), "w"
+                    ) as f:
+                        if "error" in response:
+                            raise ValueError(f"Error: {response}")
+                        else:
+                            f.write(response["choices"][0]["message"]["content"])
+                time_to_next_batch = max(0, 20 - (time.time() - start))
+                print(f"\twaiting {time_to_next_batch:02f}s for next batch...")
+                time.sleep(time_to_next_batch)
+        except ValueError as e:
+            print(e)
         print("Done")
 
     elif args.runmode == "alvis":

@@ -228,6 +228,8 @@ if __name__ == "__main__":
         torch.save(embedding_orig, args.embedding_out / "embedding_orig.pt")
         torch.save(embedding_dist, args.embedding_out / "embedding_dist.pt")
 
+    labels = reviews[["sentiment", "topic"]]
+
     # Classify before distillation
     acc_s, acc_t = classify(
         embedding_orig,
