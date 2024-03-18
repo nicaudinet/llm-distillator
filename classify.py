@@ -24,8 +24,6 @@ topic_to_int = {
     "camera": 5,
 }
 
-WANDB_PROJECT = "llm-distillation"
-
 
 def load_reviews(original_path, distilled_path):
     """
@@ -201,6 +199,11 @@ if __name__ == "__main__":
         help="The batch size to use for the pipeline (bert)",
     )
     args = parser.parse_args()
+
+    WANDB_PROJECT = "llm-distillation"
+    with open(".wandb_api_key", "r") as file:
+        WANDB_API_KEY = file.read().strip()
+    wandb.login(key=WANDB_API_KEY)
 
     reviews = load_reviews_and_log(args.original_reviews, args.distilled_reviews)
 

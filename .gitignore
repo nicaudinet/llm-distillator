@@ -10,3 +10,4 @@ embeddings
 .env
 *.ipynb
 wandb
+.wandb_api_key
