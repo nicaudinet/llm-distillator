@@ -233,12 +233,76 @@ async def call_openai(session, prompt, model, openai_api_key):
     return response
 
 
+async def call_openai_cot(session, stage1, stage2, model, openai_api_key):
+    payload = {
+        "model": model,
+        "max_tokens": 300,
+        "n": 1,
+    }
+    payload["messages"] = [{"role": "user", "content": stage1}]
+    async with session.post(
+        url="https://api.openai.com/v1/chat/completions",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_api_key}",
+        },
+        json=payload,
+        ssl=ssl.create_default_context(cafile=certifi.where()),
+    ) as response:
+        stage1_response = await response.json()
+    if "error" in stage1_response:
+        raise ValueError(f"Error in stage1: {stage1_response}")
+    stage1_response = stage1_response["choices"][0]["message"]["content"]
+    payload["messages"] = [
+        {"role": "user", "content": stage1},
+        {"role": "assistant", "content": stage1_response},
+        {"role": "user", "content": stage2},
+    ]
+    async with session.post(
+        url="https://api.openai.com/v1/chat/completions",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_api_key}",
+        },
+        json=payload,
+        ssl=ssl.create_default_context(cafile=certifi.where()),
+    ) as response:
+        stage2_response = await response.json()
+    if "error" in stage2_response:
+        raise ValueError(f"Error in stage2: {stage2_response}")
+    stage2_response = stage2_response["choices"][0]["message"]["content"]
+    return stage1_response, stage2_response
+
+
 async def call_openai_bulk(prompts, model, openai_api_key):
     async with aiohttp.ClientSession() as session, asyncio.TaskGroup() as tg:
         responses = []
         for prompt in prompts:
             responses.append(
                 tg.create_task(call_openai(session, prompt, model, openai_api_key))
+            )
+    return [response.result() for response in responses]
+
+
+async def call_openai_bulk_cot(prompts, model, openai_api_key):
+    async with aiohttp.ClientSession() as session, asyncio.TaskGroup() as tg:
+        responses = []
+        stage1s = prompts["stage1"]
+        stage2s = prompts["stage2"]
+        assert len(stage1s) == len(stage2s)
+        for i in range(len(stage1s)):
+            stage1 = stage1s[i]
+            stage2 = stage2s[i]
+            responses.append(
+                tg.create_task(
+                    call_openai_cot(
+                        session,
+                        stage1,
+                        stage2,
+                        model,
+                        openai_api_key,
+                    )
+                )
             )
     return [response.result() for response in responses]
 
@@ -372,27 +436,40 @@ if __name__ == "__main__":
         print(f"Running with {model}")
         # From https://medium.com/@nitin_l/parallel-chatgpt-requests-from-python-6ab48cc2a610
         env = dotenv_values(".env")
-        batch_size = 100  # There's a 500 RPM limit
+        batch_size = 50  # There's a 500 RPM limit
         try:
             for i, prompts_batch in enumerate(batched(prompts, batch_size)):
                 print(f"Batch {i}")
                 start = time.time()
-                responses = asyncio.run(
-                    call_openai_bulk(
-                        prompts=prompts_batch["text"],
-                        model=model,
-                        openai_api_key=env["OPENAI_API_KEY"],
+                if args.prompt_mode == "cot":
+                    responses = asyncio.run(
+                        call_openai_bulk_cot(
+                            prompts=prompts_batch,
+                            model=model,
+                            openai_api_key=env["OPENAI_API_KEY"],
+                        )
                     )
-                )
+                else:
+                    responses = asyncio.run(
+                        call_openai_bulk(
+                            prompts=prompts_batch["text"],
+                            model=model,
+                            openai_api_key=env["OPENAI_API_KEY"],
+                        )
+                    )
                 for j, response in enumerate(responses):
                     review_id = args.start_sample + i * batch_size + j
                     with open(
                         args.out_dir / Path(f"{str(review_id).zfill(5)}.txt"), "w"
                     ) as f:
-                        if "error" in response:
-                            raise ValueError(f"Error: {response}")
+                        if args.prompt_mode == "cot":
+                            stage1, stage2 = response
+                            f.write(stage1 + "\n\n---\n\n" + stage2)
                         else:
-                            f.write(response["choices"][0]["message"]["content"])
+                            if "error" in response:
+                                raise ValueError(f"Error: {response}")
+                            else:
+                                f.write(response["choices"][0]["message"]["content"])
                 time_to_next_batch = max(0, 20 - (time.time() - start))
                 print(f"\twaiting {time_to_next_batch:02f}s for next batch...")
                 time.sleep(time_to_next_batch)
