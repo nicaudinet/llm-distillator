@@ -11,3 +11,4 @@ embeddings
 *.ipynb
 wandb
 .wandb_api_key
+reviews
