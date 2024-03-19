@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-import wandb
+from dotenv import dotenv_values
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
@@ -12,6 +12,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils import resample
 from torch.utils.data import DataLoader
 from transformers import DistilBertModel, DistilBertTokenizer
+
+import wandb
 
 sentiment_to_int = {"pos": 1, "neg": 0}
 
@@ -200,10 +202,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+
+    env = dotenv_values(".env")
+    wandb.login(key=env["WANDB_API_KEY"])
     WANDB_PROJECT = "llm-distillation"
-    with open(".wandb_api_key", "r") as file:
-        WANDB_API_KEY = file.read().strip()
-    wandb.login(key=WANDB_API_KEY)
 
     reviews = load_reviews_and_log(args.original_reviews, args.distilled_reviews)
 
