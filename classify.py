@@ -104,6 +104,26 @@ def embed_bert(data, batch_size: int) -> torch.Tensor:
     return embeddings.mean(dim=1)
 
 
+def mean_projection(X, Y):
+    normal = X[Y == 1].mean(axis=0) - X[Y == 0].mean(axis=0)
+
+    if normal.isnan().any():
+        print(normal)
+        raise ValueError("There is a NaN in normal before division")
+
+    normal /= torch.sqrt(normal.dot(normal))
+
+    if normal.isnan().any():
+        print(normal)
+        raise ValueError("There is a NaN in normal after division")
+
+    Xp = []
+    for x in X:
+        alpha = x.dot(normal)
+        Xp.append(x - alpha * normal)
+    return torch.stack(Xp)
+
+
 def classify(embeddings, labels, test_size, B, CL):
     n_samples = len(embeddings)
     Ys = labels["sentiment"].apply(lambda x: sentiment_to_int[x])
@@ -171,6 +191,11 @@ if __name__ == "__main__":
         help="Path to save classification output to",
     )
     parser.add_argument(
+        "--mean_projection",
+        help="Whether to use mean projection for the embeddings",
+        action="store_true",
+    )
+    parser.add_argument(
         "--num_reviews",
         type=int,
         help="The number of reviews to use (default: all)",
@@ -202,7 +227,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-
     env = dotenv_values(".env")
     wandb.login(key=env["WANDB_API_KEY"])
     WANDB_PROJECT = "llm-distillation"
@@ -232,6 +256,12 @@ if __name__ == "__main__":
     if args.embedding_out:
         torch.save(embedding_orig, args.embedding_out / "embedding_orig.pt")
         torch.save(embedding_dist, args.embedding_out / "embedding_dist.pt")
+
+    if args.mean_projection:
+        if embedding_orig.isnan().any():
+            print(embedding_orig)
+        labels = reviews["sentiment"].apply(lambda x: sentiment_to_int[x])
+        embedding_dist = mean_projection(embedding_orig, labels)
 
     labels = reviews[["sentiment", "topic"]]
 
